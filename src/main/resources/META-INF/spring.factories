@@ -1,0 +1,2 @@
+org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
+com.jdfcc.ipcheckannotation.aop.IpCheckAop,com.jdfcc.ipcheckannotation.config.RedisConfig

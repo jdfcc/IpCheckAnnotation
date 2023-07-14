@@ -9,7 +9,7 @@ import org.springframework.data.redis.serializer.RedisSerializer;
 
 /**
  * @author Jdfcc
- * @Description TODO
+ * @Description RedisConfig
  * @DateTime 2023/7/14 18:05
  */
 @Configuration

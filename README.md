@@ -1,3 +1,3 @@
 # IpCheckAnnotation
 
-一个简单的基于redis实现的ip防刷注解，在application.yaml下简单配置redis后即可使用
+一个简单的基于redis实现的接口防刷注解，在application.yaml下简单配置redis后即可使用

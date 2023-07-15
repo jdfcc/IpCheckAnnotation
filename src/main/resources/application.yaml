@@ -1,12 +1,9 @@
-server:
-  port: 9090
-
 spring:
   redis:
-    database: 1
-    host: 120.55.80.133
-    port: 6380
-    password: 3039@Hyd123G,,,
+    database: # redis database
+    host: #your ip address
+    port: #redis port
+    password: #your redis password
     lettuce:
       pool:
         max-active: 10

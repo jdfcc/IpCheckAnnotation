@@ -7,18 +7,18 @@ import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.aspectj.lang.reflect.MethodSignature;
 import org.springframework.core.annotation.Order;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
+import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
 import java.lang.reflect.Method;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
-import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
 import static com.jdfcc.ipcheckannotation.common.constant.IP_CACHE_KEY;
@@ -35,10 +35,8 @@ import static com.jdfcc.ipcheckannotation.common.constant.IP_CACHE_KEY;
 @Slf4j
 public class IpCheckAop {
 
-    @Autowired
+    @Resource
     private StringRedisTemplate redisTemplate;
-
-
 
 
     @Around("@annotation(com.jdfcc.ipcheckannotation.annotation.IpCheckAnnotation) || @within(com.jdfcc.ipcheckannotation.annotation.IpCheckAnnotation)")
@@ -60,15 +58,10 @@ public class IpCheckAop {
             }
             return pjp.proceed();
         }
-        // 获取类中所有的方法，判断是否存在此注解
-        Method[] methods = clazz.getDeclaredMethods();
-        // 遍历方法数组
-        for (Method method : methods) {
-            // 判断方法是否有注解
-            if (method.isAnnotationPresent(IpCheckAnnotation.class)) {
-                // 获取方法上的注解
-                annotation = method.getAnnotation(IpCheckAnnotation.class);
-            }
+        MethodSignature methodSignature = (MethodSignature) pjp.getSignature();
+        Method method = methodSignature.getMethod();
+        if (method.isAnnotationPresent(IpCheckAnnotation.class)) {
+            annotation = method.getAnnotation(IpCheckAnnotation.class);
         }
         if (annotation == null) {
             //        放行
@@ -84,26 +77,26 @@ public class IpCheckAop {
     }
 
     private Boolean validAndHandleIp(String ip, IpCheckAnnotation annotation) {
-        String key=IP_CACHE_KEY+ip;
+        String key = IP_CACHE_KEY + ip;
 
-        Object count =  redisTemplate.opsForHash().get(key, "count");
+        Object count = redisTemplate.opsForHash().get(key, "count");
         int limitCount = annotation.count();
         int time = annotation.time();
 
-        Object sec =  redisTemplate.opsForHash().get(key, "time");
+        Object sec = redisTemplate.opsForHash().get(key, "time");
         LocalDateTime now = LocalDateTime.now();
         Long nowSec = now.toEpochSecond(ZoneOffset.UTC);
 
         if (count == null || sec == null) {
             redisTemplate.opsForHash().put(key, "count", String.valueOf(1));
             redisTemplate.opsForHash().put(key, "time", String.valueOf(nowSec));
-            redisTemplate.expire(key,time,TimeUnit.SECONDS);
+            redisTemplate.expire(key, time, TimeUnit.SECONDS);
             return true;
         }
 
 
-       Integer lastCount=Integer.valueOf((String) count);
-       Integer lastSec=Integer.valueOf((String) sec);
+        int lastCount = Integer.parseInt((String) count);
+        Integer lastSec = Integer.valueOf((String) sec);
         if (limitCount <= 0) {
             throw new IllegalArgumentException("Count can not be 0 and even smaller");
         }
@@ -124,7 +117,7 @@ public class IpCheckAop {
             return false;
         }
 
-        lastCount = lastCount > 0 ? lastCount : 0;
+        lastCount = Math.max(lastCount, 0);
         redisTemplate.opsForHash().put(key, "count", String.valueOf(lastCount + 1));
         redisTemplate.opsForHash().put(key, "time", String.valueOf(nowSec));
         redisTemplate.expire(key, time, TimeUnit.SECONDS);
